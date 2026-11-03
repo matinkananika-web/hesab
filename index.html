@@ -71,6 +71,11 @@ header.top h1{font-size:20px;margin:0;font-weight:800}
 .budget .row small{color:var(--muted)}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{padding:6px 12px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-size:13px}
+.chips.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -14px 8px;padding:0 14px}
+.chips.scroll::-webkit-scrollbar{display:none}
+.chips.scroll .chip{flex:none}
+.sumbar{display:flex;justify-content:space-between;gap:8px;font-size:13px}
+.sumbar b{display:block;font-size:15px;margin-top:2px}
 .chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
 .search{width:100%;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);margin-bottom:8px;outline:none}
 .search:focus,.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand)}
@@ -213,6 +218,9 @@ const DEFAULT_META={
     {id:'fun',name:'تفریح',icon:'🎬',type:'expense',budget:0},
     {id:'edu',name:'آموزش',icon:'📚',type:'expense',budget:0},
     {id:'gift',name:'هدیه',icon:'🎁',type:'expense',budget:0},
+    {id:'subs',name:'اشتراک',icon:'🔁',type:'expense',budget:0},
+    {id:'gold',name:'طلا',icon:'🥇',type:'expense',budget:0},
+    {id:'silver',name:'نقره',icon:'🥈',type:'expense',budget:0},
     {id:'other',name:'سایر',icon:'📦',type:'expense',budget:0},
     {id:'salary',name:'حقوق',icon:'💼',type:'income',budget:0},
     {id:'business',name:'فروش و کسب‌وکار',icon:'🛍️',type:'income',budget:0},
@@ -225,6 +233,14 @@ const DEFAULT_META={
 const LS_KEY='hesab-man-v1';
 let S={meta:clone(DEFAULT_META),months:{}}; // months: {'m-1405-08':[tx,...]}
 try{const raw=localStorage.getItem(LS_KEY);if(raw){const o=JSON.parse(raw);if(o&&o.meta)S=o}}catch(e){}
+(function migrate(){const m=S.meta;m.migrations=m.migrations||[];
+  if(!m.migrations.includes('cats-subs-gold-silver')){
+    const add=DEFAULT_META.categories.filter(c=>['subs','gold','silver'].includes(c.id)&&!m.categories.some(x=>x.id===c.id));
+    const i=m.categories.findIndex(c=>c.id==='other');
+    m.categories.splice(i>=0?i:m.categories.length,0,...clone(add));
+    m.migrations.push('cats-subs-gold-silver');
+    try{localStorage.setItem(LS_KEY,JSON.stringify(S))}catch(e){}
+  }})();
 function saveLocal(){try{localStorage.setItem(LS_KEY,JSON.stringify(S))}catch(e){}}
 const mKey=(y,m)=>`m-${y}-${pad(m)}`;
 const keyOfDate=s=>'m-'+s.slice(0,7);
@@ -307,7 +323,7 @@ const sortTx=a=>a.slice().sort((x,y)=>x.date<y.date?1:x.date>y.date?-1:(y.create
 
 /* ===================== view state ===================== */
 const T=todayJ();
-const V={tab:'home',y:T.jy,m:T.jm,ftype:'all',facc:'',q:''};
+const V={tab:'home',y:T.jy,m:T.jm,ftype:'all',facc:'',fcat:'',scope:'month',q:''};
 function shiftMonth(d){let m=V.m+d,y=V.y;if(m<1){m=12;y--}if(m>12){m=1;y++}V.y=y;V.m=m;render()}
 $('#mPrev').onclick=()=>shiftMonth(-1); $('#mNext').onclick=()=>shiftMonth(1);
 $('#mLabel').onclick=()=>{V.y=T.jy;V.m=T.jm;render()};
@@ -317,7 +333,7 @@ $('#addBtn').onclick=()=>openTx();
 /* ===================== rendering ===================== */
 function shortDate(s){const {jy,jm,jd}=parseJ(s);return `${fa(jd)} ${MONTHS[jm-1]}${jy!==T.jy?' '+fa(jy):''}`}
 function dayGroups(list){const days={};sortTx(list).forEach(t=>(days[t.date]=days[t.date]||[]).push(t));return days}
-function dayLabel(d){const td=jStr(T.jy,T.jm,T.jd),y=todayJ(-1),yd=jStr(y.jy,y.jm,y.jd);const {jd,jm}=parseJ(d);return (d===td?'امروز · ':d===yd?'دیروز · ':'')+`${weekday(d)} ${fa(jd)} ${MONTHS[jm-1]}`}
+function dayLabel(d){const td=jStr(T.jy,T.jm,T.jd),y=todayJ(-1),yd=jStr(y.jy,y.jm,y.jd);const {jd,jm}=parseJ(d);const jy=parseJ(d).jy;return (d===td?'امروز · ':d===yd?'دیروز · ':'')+`${weekday(d)} ${fa(jd)} ${MONTHS[jm-1]}${jy!==T.jy?' '+fa(jy):''}`}
 function txRow(t){
   let icon,title,sub,cls,sign;
   if(t.type==='transfer'){const a=acc(t.account),b=acc(t.toAccount);icon='🔁';title=t.note||'انتقال';sub=`${a?a.name:'؟'} ← ${b?b.name:'؟'}`;cls='';sign=''}
@@ -363,24 +379,46 @@ function renderHome(main){
 }
 
 function renderList(main){
-  let mtx=S.months[mKey(V.y,V.m)]||[];
+  let list=V.scope==='all'?allTx():(S.months[mKey(V.y,V.m)]||[]);
   const q=toEn(V.q.trim()).toLowerCase();
-  mtx=mtx.filter(t=>(V.ftype==='all'||t.type===V.ftype)&&(!V.facc||t.account===V.facc||t.toAccount===V.facc)&&
+  list=list.filter(t=>(V.ftype==='all'||t.type===V.ftype)&&(!V.facc||t.account===V.facc||t.toAccount===V.facc)&&
+    (!V.fcat||t.category===V.fcat)&&
     (!q||[t.note,cat(t.category)?.name,acc(t.account)?.name,String(t.amount)].join(' ').toLowerCase().includes(q)));
-  const days={};sortTx(mtx).forEach(t=>(days[t.date]=days[t.date]||[]).push(t));
+  const days=dayGroups(list);
+  const filtered=V.q||V.ftype!=='all'||V.facc||V.fcat;
+  let inc=0,exp=0;list.forEach(t=>{if(t.type==='income')inc+=t.amount;else if(t.type==='expense')exp+=t.amount});
+  const cats=S.meta.categories.filter(c=>V.ftype==='all'||V.ftype===c.type);
+  const fc=cat(V.fcat);
   main.innerHTML=`
   <input class="search" id="q" placeholder="جستجو در یادداشت، دسته، مبلغ…" value="${esc(V.q)}">
-  <div class="chips" style="margin-bottom:10px">
-    ${[['all','همه'],['expense','هزینه'],['income','درآمد'],['transfer','انتقال']].map(([k,l])=>`<button class="chip ${V.ftype===k?'on':''}" data-ft="${k}">${l}</button>`).join('')}
+  <div class="chips scroll">
+    <button class="chip ${V.scope==='month'?'on':''}" data-sc="month">📅 فقط ${MONTHS[V.m-1]}</button>
+    <button class="chip ${V.scope==='all'?'on':''}" data-sc="all">🗂️ همهٔ ماه‌ها</button>
+    ${[['all','همهٔ انواع'],['expense','هزینه'],['income','درآمد'],['transfer','انتقال']].map(([k,l])=>`<button class="chip ${V.ftype===k?'on':''}" data-ft="${k}">${l}</button>`).join('')}
+  </div>
+  ${V.ftype!=='transfer'?`<div class="chips scroll">
+    <button class="chip ${!V.fcat?'on':''}" data-fc="">همهٔ دسته‌ها</button>
+    ${cats.map(c=>`<button class="chip ${V.fcat===c.id?'on':''}" data-fc="${c.id}">${c.icon} ${esc(c.name)}</button>`).join('')}
+  </div>`:''}
+  <div class="chips scroll" style="margin-bottom:10px">
     <button class="chip ${!V.facc?'on':''}" data-fa="">همهٔ حساب‌ها</button>
     ${S.meta.accounts.map(a=>`<button class="chip ${V.facc===a.id?'on':''}" data-fa="${a.id}">${a.icon} ${esc(a.name)}</button>`).join('')}
   </div>
-  ${Object.keys(days).length?Object.entries(days).map(([d,ts])=>{const net=ts.reduce((s,t)=>s+(t.type==='income'?t.amount:t.type==='expense'?-t.amount:0),0);const {jd,jm}=parseJ(d);
+  ${filtered&&list.length?`<div class="card" style="padding:12px 14px">
+    <div class="sumbar"><span class="muted">${fc?fc.icon+' '+esc(fc.name)+' · ':''}${fa(list.length)} تراکنش ${V.scope==='all'?'در همهٔ ماه‌ها':'در '+MONTHS[V.m-1]}</span>${(fc||V.facc||V.q)?`<button class="linkbtn" id="clr">حذف فیلترها</button>`:''}</div>
+    <div class="sumbar" style="margin-top:8px">${exp?`<span>جمع هزینه<b class="neg">${grp(exp)}</b></span>`:''}${inc?`<span>جمع درآمد<b class="pos">${grp(inc)}</b></span>`:''}${inc&&exp?`<span>خالص<b>${money(inc-exp,true)}</b></span>`:''}</div>
+  </div>`:''}
+  ${Object.keys(days).length?Object.entries(days).map(([d,ts])=>{const net=ts.reduce((s,t)=>s+(t.type==='income'?t.amount:t.type==='expense'?-t.amount:0),0);
     return `<div class="dayhead"><span>${dayLabel(d)}</span><span class="${net<0?'neg':net>0?'pos':''}">${net?money(net,true):''}</span></div><div class="card" style="padding:4px 14px">${ts.map(txRow).join('')}</div>`}).join('')
-    :`<div class="card empty">${V.q||V.ftype!=='all'||V.facc?'نتیجه‌ای پیدا نشد.':'تراکنشی در این ماه نیست.'}</div>`}`;
+    :`<div class="card empty">${filtered?'تراکنشی با این فیلتر پیدا نشد.':'تراکنشی در این ماه نیست.'}</div>`}`;
   const qi=$('#q');qi.oninput=()=>{V.q=qi.value;const pos=qi.selectionStart;renderList(main);const n=$('#q');n.focus();n.setSelectionRange(pos,pos)};
-  main.querySelectorAll('[data-ft]').forEach(b=>b.onclick=()=>{V.ftype=b.dataset.ft;render()});
+  main.querySelectorAll('[data-sc]').forEach(b=>b.onclick=()=>{V.scope=b.dataset.sc;render()});
+  main.querySelectorAll('[data-ft]').forEach(b=>b.onclick=()=>{V.ftype=b.dataset.ft;if(V.fcat&&cat(V.fcat)?.type!==V.ftype)V.fcat='';render()});
+  main.querySelectorAll('[data-fc]').forEach(b=>b.onclick=()=>{V.fcat=b.dataset.fc;render()});
   main.querySelectorAll('[data-fa]').forEach(b=>b.onclick=()=>{V.facc=b.dataset.fa;render()});
+  const clr=$('#clr');if(clr)clr.onclick=()=>{V.fcat='';V.facc='';V.q='';V.ftype='all';render()};
+  // keep the selected chip visible in its row
+  main.querySelectorAll('.chips.scroll .chip.on').forEach(c=>c.scrollIntoView({block:'nearest',inline:'nearest'}));
   bindTxRows(main);
 }
 
@@ -411,7 +449,7 @@ function renderReport(main){
   const {inc,exp}=monthSums(V.y,V.m);
   main.innerHTML=`
   <div class="card"><h3>هزینه‌ها بر اساس دسته <small>${unit()}</small></h3>
-    ${total?donut(items,total)+`<div class="list legend">${items.map(it=>`<div class="item"><span class="dot" style="background:${it.color}"></span><span class="ic" style="font-size:17px">${it.icon}</span><span class="mid">${esc(it.name)}<small>${fa((it.v/total*100).toFixed(1))}٪</small></span><b>${grp(it.v)}</b></div>`).join('')}</div>`
+    ${total?donut(items,total)+`<div class="list legend">${items.map(it=>`<button class="item" data-go="${it.id}"><span class="dot" style="background:${it.color}"></span><span class="ic" style="font-size:17px">${it.icon}</span><span class="mid">${esc(it.name)}<small>${fa((it.v/total*100).toFixed(1))}٪</small></span><b>${grp(it.v)}</b></button>`).join('')}</div>`
     :'<div class="empty">در این ماه هزینه‌ای ثبت نشده.</div>'}
   </div>
   <div class="card"><h3>روند ۶ ماه اخیر</h3>${trend()}</div>
@@ -424,6 +462,7 @@ function renderReport(main){
       ${inc>0?`<div class="item"><span class="mid">نرخ پس‌انداز</span><b>${fa(Math.round((inc-exp)/inc*100))}٪</b></div>`:''}
     </div>
   </div>`;
+  main.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{V.fcat=b.dataset.go;V.ftype='expense';V.facc='';V.q='';V.scope='month';V.tab='list';render();window.scrollTo(0,0)});
 }
 
 function renderSettings(main){
