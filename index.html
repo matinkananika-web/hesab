@@ -76,6 +76,16 @@ header.top h1{font-size:20px;margin:0;font-weight:800}
 .chips.scroll .chip{flex:none}
 .sumbar{display:flex;justify-content:space-between;gap:8px;font-size:13px}
 .sumbar b{display:block;font-size:15px;margin-top:2px}
+.live .rowp{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.live .rowp:last-child{border-bottom:0}
+.live .rowp .ic{font-size:20px;width:30px;text-align:center}
+.live .rowp .mid{flex:1}
+.live .rowp small{display:block;color:var(--muted);font-size:11.5px}
+.live .px{font-weight:800;direction:ltr;font-size:16px;transition:color .4s}
+.live .chg{font-size:11.5px;direction:ltr;text-align:left}
+.live .px.up{color:var(--green)} .live .px.down{color:var(--red)}
+.live .dotlive{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-left:5px;animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.25}}
 .chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
 .search{width:100%;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);margin-bottom:8px;outline:none}
 .search:focus,.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand)}
@@ -349,6 +359,7 @@ function render(){
   $('#mLabel').textContent=`${MONTHS[V.m-1]} ${fa(V.y)}`;
   const main=$('#main');
   ({home:renderHome,list:renderList,report:renderReport,settings:renderSettings})[V.tab](main);
+  if(V.tab==='home'&&typeof updateLive==='function')updateLive();
 }
 
 function renderHome(main){
@@ -367,6 +378,7 @@ function renderHome(main){
       <div><span>ماندهٔ ماه</span><b>${money(inc-exp,true)}</b></div>
     </div>
   </div>
+  <div class="card live hidden" id="live"></div>
   ${budgets.length?`<div class="card"><h3>بودجهٔ این ماه</h3>${budgets.map(c=>{const s=spent[c.id]||0,p=Math.min(100,s/c.budget*100),over=s>c.budget;
     return `<div class="budget"><div class="row"><span>${c.icon} ${esc(c.name)}</span><small class="${over?'neg':''}">${grp(s)} از ${grp(c.budget)}</small></div><div class="bar"><i style="width:${p}%;background:${over?'var(--red)':p>80?'var(--amber)':'var(--brand)'}"></i></div></div>`}).join('')}</div>`:''}
   <div class="card"><h3>تراکنش‌های ${MONTHS[V.m-1]} <small>${mtx.length?fa(mtx.length)+' مورد':''}</small></h3>
@@ -657,9 +669,53 @@ async function wipeAll(){
   persist('meta');keys.forEach(persist);render();toast('پاک شد');
 }
 
+/* ===================== live metal prices (gold-api.com, USD) ===================== */
+const METALS=[{s:'XAU',n:'طلا',ic:'🥇',u:'اونس',g:true},{s:'XAG',n:'نقره',ic:'🥈',u:'اونس',g:true},{s:'HG',n:'مس',ic:'🟠',u:'پوند',g:false}];
+const LIVE={p:{},open:{},dir:{},ok:{},last:0,busy:false,wait:1000,timer:null};
+const usd=(n,d=2)=>'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+async function fetchMetal(m){
+  const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),6000);
+  try{const r=await fetch('https://api.gold-api.com/price/'+m.s,{cache:'no-store',signal:ctl.signal});
+    if(r.status===429){LIVE.wait=10000;return}
+    if(!r.ok) return;
+    const j=await r.json();const v=Number(j.price);if(!isFinite(v)||v<=0)return;
+    const old=LIVE.p[m.s];if(old!==undefined&&v!==old)LIVE.dir[m.s]=v>old?'up':'down';
+    if(LIVE.open[m.s]===undefined)LIVE.open[m.s]=v;
+    LIVE.p[m.s]=v;LIVE.ok[m.s]=Date.now();LIVE.last=Date.now();
+  }catch(e){}finally{clearTimeout(to)}
+}
+async function tick(){
+  clearTimeout(LIVE.timer);
+  if(document.visibilityState==='visible'&&navigator.onLine!==false&&!LIVE.busy){
+    LIVE.busy=true;await Promise.all(METALS.map(fetchMetal));LIVE.busy=false;
+    if(LIVE.wait>1000&&Date.now()-LIVE.last<3000)LIVE.wait=Math.max(1000,LIVE.wait-1000);
+  }
+  updateLive();LIVE.timer=setTimeout(tick,LIVE.wait);
+}
+function updateLive(){
+  const el=$('#live');if(!el)return;
+  const fresh=navigator.onLine!==false&&Date.now()-LIVE.last<20000;
+  el.classList.toggle('hidden',!fresh);if(!fresh)return;
+  if(!el.dataset.built){
+    el.innerHTML=`<h3><span><i class="dotlive"></i>قیمت لحظه‌ای جهانی</span><small id="liveAgo"></small></h3>`+METALS.map(m=>`<div class="rowp" id="lp-${m.s}"><span class="ic">${m.ic}</span><span class="mid">${m.n}<small>${m.g?'دلار برای هر اونس · هر گرم <bdi class="pg" dir="ltr"></bdi>':'دلار برای هر پوند'}</small></span><span><div class="px">—</div><div class="chg"></div></span></div>`).join('')+`<div class="note" style="margin-top:6px;font-size:11.5px">منبع: gold-api.com · قیمت جهانی به دلار، نه بازار ایران</div>`;
+    el.dataset.built='1';
+  }
+  METALS.forEach(m=>{const row=$('#lp-'+m.s);const v=LIVE.p[m.s];
+    if(v===undefined||Date.now()-(LIVE.ok[m.s]||0)>30000){row.classList.add('hidden');return}
+    row.classList.remove('hidden');
+    const px=row.querySelector('.px');const txt=usd(v,m.s==='HG'?3:2);if(px.textContent!==txt){px.textContent=txt;px.className='px '+(LIVE.dir[m.s]||'');clearTimeout(px._t);px._t=setTimeout(()=>px.className='px',700)}
+    if(m.g)row.querySelector('.pg').textContent=usd(v/31.1035);
+    const o=LIVE.open[m.s],d=v-o,pc=o?d/o*100:0;const c=row.querySelector('.chg');
+    c.textContent=d?`${d>0?'▲':'▼'} ${Math.abs(pc).toFixed(2)}%`:'';c.className='chg '+(d>0?'pos':d<0?'neg':'');
+  });
+  const s=Math.max(0,Math.round((Date.now()-LIVE.last)/1000));$('#liveAgo').textContent=s<2?'همین الان':fa(s)+' ثانیه پیش';
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')tick()});
+window.addEventListener('online',tick);window.addEventListener('offline',updateLive);
+
 /* ===================== start ===================== */
 const standalone=window.navigator.standalone===true||matchMedia('(display-mode: standalone)').matches;
-mode='local';render();
+mode='local';render();tick();
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 /* offline readiness */
 async function offlineStatus(){

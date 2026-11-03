@@ -1,5 +1,5 @@
 // حساب من — service worker: works fully offline after the first visit
-const CACHE = 'hesab-v6';
+const CACHE = 'hesab-v7';
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 // Safari refuses to serve "redirected" responses for page loads, so store clean copies.
