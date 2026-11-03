@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="حساب من">
-<meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
 <title>حساب من</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -17,13 +17,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#f4f5f7; --card:#ffffff; --card2:#f0f1f4; --text:#15171c; --muted:#6b7280; --line:#e5e7eb;
-  --brand:#2f6df6; --brand-soft:#e8efff; --green:#13a26b; --green-soft:#e5f6ee; --red:#e5484d; --red-soft:#fdecec;
-  --amber:#d98c00; --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.05);
-}
-@media (prefers-color-scheme: dark){
-  :root{ --bg:#0f1115; --card:#181b21; --card2:#20242c; --text:#eef0f3; --muted:#9aa1ad; --line:#2a2f38;
-    --brand:#5b8cff; --brand-soft:#1d2840; --green:#2fc48a; --green-soft:#15302a; --red:#ff6b70; --red-soft:#3a1d20; --shadow:none; }
+  --bg:#000000; --card:#0c1220; --card2:#131c2e; --text:#eaf1ff; --muted:#8696b4; --line:#1c2840;
+  --brand:#3b82f6; --brand-soft:#0f2547; --green:#34d399; --green-soft:#0d2e24; --red:#f87171; --red-soft:#341417;
+  --amber:#fbbf24; --shadow:none; color-scheme:dark;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:Vazirmatn,Tahoma,sans-serif;font-size:15px}
@@ -38,10 +34,11 @@ header.top h1{font-size:20px;margin:0;font-weight:800}
 .monthbar button{width:38px;height:38px;border-radius:10px;font-size:20px;color:var(--brand)}
 .monthbar button:active{background:var(--brand-soft)}
 .monthbar .m{font-weight:700}
-.card{background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
 .card h3{margin:0 0 10px;font-size:15px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
 .card h3 small{font-weight:500;color:var(--muted);font-size:12.5px}
-.hero{background:linear-gradient(135deg,#2f6df6,#6a4cf5);color:#fff}
+.card.hero{border:0}
+.hero{background:linear-gradient(135deg,#1e3a8a,#2563eb 60%,#3b82f6);color:#fff}
 .hero .lbl{opacity:.85;font-size:13px}
 .hero .big{font-size:30px;font-weight:800;margin:4px 0 2px;letter-spacing:-.5px}
 .hero .unit{font-size:14px;opacity:.85;font-weight:500}
@@ -62,7 +59,9 @@ header.top h1{font-size:20px;margin:0;font-weight:800}
 .tx .mid{flex:1;min-width:0}
 .tx .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tx .s{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx .end{text-align:left;flex:none}
 .tx .amt{font-weight:700;white-space:nowrap}
+.tx .d{font-size:11.5px;color:var(--muted);margin-top:2px;white-space:nowrap}
 .dayhead{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);padding:6px 4px 2px}
 .empty{color:var(--muted);text-align:center;padding:22px 8px;font-size:14px;line-height:1.9}
 .bar{height:8px;background:var(--card2);border-radius:99px;overflow:hidden;margin-top:6px}
@@ -79,10 +78,10 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-to
 nav.tabs button{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted);padding:4px 8px;min-width:58px}
 nav.tabs button svg{width:23px;height:23px}
 nav.tabs button.on{color:var(--brand)}
-nav.tabs .add{width:54px;height:54px;border-radius:18px;background:var(--brand);color:#fff;margin-top:-24px;box-shadow:0 6px 18px rgba(47,109,246,.4);justify-content:center;min-width:0;padding:0}
+nav.tabs .add{width:54px;height:54px;border-radius:18px;background:var(--brand);color:#fff;margin-top:-24px;box-shadow:0 6px 20px rgba(59,130,246,.45);justify-content:center;min-width:0;padding:0}
 nav.tabs .add svg{width:28px;height:28px}
 /* sheet */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:40;display:none;align-items:flex-end;justify-content:center}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:40;display:none;align-items:flex-end;justify-content:center}
 .overlay.show{display:flex}
 .sheet{background:var(--bg);width:100%;max-width:560px;max-height:92vh;overflow-y:auto;border-radius:22px 22px 0 0;padding:10px 16px calc(env(safe-area-inset-bottom) + 16px);animation:up .22s ease-out}
 @keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
@@ -118,7 +117,7 @@ nav.tabs .add svg{width:28px;height:28px}
 .linkbtn{color:var(--brand);font-weight:600;font-size:13.5px}
 .legend .item{padding:8px 0}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
-.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 92px);transform:translateX(-50%);background:#111;color:#fff;padding:9px 16px;border-radius:12px;font-size:13.5px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 92px);transform:translateX(-50%);background:var(--brand);color:#fff;padding:9px 16px;border-radius:12px;font-size:13.5px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
 .toast.show{opacity:.95}
 .note{font-size:13px;color:var(--muted);line-height:1.9}
 .note b{color:var(--text)}
@@ -316,11 +315,14 @@ document.querySelectorAll('nav.tabs [data-tab]').forEach(b=>b.onclick=()=>{V.tab
 $('#addBtn').onclick=()=>openTx();
 
 /* ===================== rendering ===================== */
+function shortDate(s){const {jy,jm,jd}=parseJ(s);return `${fa(jd)} ${MONTHS[jm-1]}${jy!==T.jy?' '+fa(jy):''}`}
+function dayGroups(list){const days={};sortTx(list).forEach(t=>(days[t.date]=days[t.date]||[]).push(t));return days}
+function dayLabel(d){const td=jStr(T.jy,T.jm,T.jd),y=todayJ(-1),yd=jStr(y.jy,y.jm,y.jd);const {jd,jm}=parseJ(d);return (d===td?'امروز · ':d===yd?'دیروز · ':'')+`${weekday(d)} ${fa(jd)} ${MONTHS[jm-1]}`}
 function txRow(t){
   let icon,title,sub,cls,sign;
   if(t.type==='transfer'){const a=acc(t.account),b=acc(t.toAccount);icon='🔁';title=t.note||'انتقال';sub=`${a?a.name:'؟'} ← ${b?b.name:'؟'}`;cls='';sign=''}
   else{const c=cat(t.category);icon=c?c.icon:'❔';title=t.note||(c?c.name:'بدون دسته');sub=(c&&t.note?c.name+' · ':'')+(acc(t.account)?.name||'');cls=t.type==='income'?'pos':'neg';sign=t.type==='income'?'+':'−'}
-  return `<button class="tx" data-tx="${t.id}"><span class="ic">${icon}</span><span class="mid"><div class="t">${esc(title)}</div><div class="s">${esc(sub)}</div></span><span class="amt ${cls}">${sign}${grp(t.amount)}</span></button>`;
+  return `<button class="tx" data-tx="${t.id}"><span class="ic">${icon}</span><span class="mid"><div class="t">${esc(title)}</div><div class="s">${esc(sub)}</div></span><span class="end"><div class="amt ${cls}">${sign}${grp(t.amount)}</div><div class="d">${shortDate(t.date)}</div></span></button>`;
 }
 function bindTxRows(root){root.querySelectorAll('[data-tx]').forEach(el=>el.onclick=()=>{const t=allTx().find(x=>x.id===el.dataset.tx);if(t)openTx(t)})}
 
@@ -354,7 +356,7 @@ function renderHome(main){
   ${budgets.length?`<div class="card"><h3>بودجهٔ این ماه</h3>${budgets.map(c=>{const s=spent[c.id]||0,p=Math.min(100,s/c.budget*100),over=s>c.budget;
     return `<div class="budget"><div class="row"><span>${c.icon} ${esc(c.name)}</span><small class="${over?'neg':''}">${grp(s)} از ${grp(c.budget)}</small></div><div class="bar"><i style="width:${p}%;background:${over?'var(--red)':p>80?'var(--amber)':'var(--brand)'}"></i></div></div>`}).join('')}</div>`:''}
   <div class="card"><h3>آخرین تراکنش‌های ${MONTHS[V.m-1]} ${mtx.length?'<button class="linkbtn" id="goList">همه</button>':''}</h3>
-    ${mtx.length?sortTx(mtx).slice(0,6).map(txRow).join(''):`<div class="empty">هنوز تراکنشی در این ماه ثبت نشده.<br>با دکمهٔ <b>+</b> پایین صفحه اولین هزینه یا درآمد را ثبت کنید.</div>`}
+    ${mtx.length?Object.entries(dayGroups(sortTx(mtx).slice(0,8))).map(([d,ts])=>`<div class="dayhead" style="padding:10px 0 0"><span>${dayLabel(d)}</span></div>${ts.map(txRow).join('')}`).join(''):`<div class="empty">هنوز تراکنشی در این ماه ثبت نشده.<br>با دکمهٔ <b>+</b> پایین صفحه اولین هزینه یا درآمد را ثبت کنید.</div>`}
   </div>`;
   bindTxRows(main);
   $('#goAcc').onclick=()=>{V.tab='settings';render()};
@@ -375,7 +377,7 @@ function renderList(main){
     ${S.meta.accounts.map(a=>`<button class="chip ${V.facc===a.id?'on':''}" data-fa="${a.id}">${a.icon} ${esc(a.name)}</button>`).join('')}
   </div>
   ${Object.keys(days).length?Object.entries(days).map(([d,ts])=>{const net=ts.reduce((s,t)=>s+(t.type==='income'?t.amount:t.type==='expense'?-t.amount:0),0);const {jd,jm}=parseJ(d);
-    return `<div class="dayhead"><span>${weekday(d)} ${fa(jd)} ${MONTHS[jm-1]}</span><span class="${net<0?'neg':net>0?'pos':''}">${net?money(net,true):''}</span></div><div class="card" style="padding:4px 14px">${ts.map(txRow).join('')}</div>`}).join('')
+    return `<div class="dayhead"><span>${dayLabel(d)}</span><span class="${net<0?'neg':net>0?'pos':''}">${net?money(net,true):''}</span></div><div class="card" style="padding:4px 14px">${ts.map(txRow).join('')}</div>`}).join('')
     :`<div class="card empty">${V.q||V.ftype!=='all'||V.facc?'نتیجه‌ای پیدا نشد.':'تراکنشی در این ماه نیست.'}</div>`}`;
   const qi=$('#q');qi.oninput=()=>{V.q=qi.value;const pos=qi.selectionStart;renderList(main);const n=$('#q');n.focus();n.setSelectionRange(pos,pos)};
   main.querySelectorAll('[data-ft]').forEach(b=>b.onclick=()=>{V.ftype=b.dataset.ft;render()});
