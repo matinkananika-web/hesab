@@ -234,6 +234,7 @@ const LS_KEY='hesab-man-v1';
 let S={meta:clone(DEFAULT_META),months:{}}; // months: {'m-1405-08':[tx,...]}
 try{const raw=localStorage.getItem(LS_KEY);if(raw){const o=JSON.parse(raw);if(o&&o.meta)S=o}}catch(e){}
 (function migrate(){const m=S.meta;m.migrations=m.migrations||[];
+  if(!m.accounts||!m.accounts.length) m.accounts=[{id:'cash',name:'حساب من',icon:'💵',initial:0}];
   if(!m.migrations.includes('cats-subs-gold-silver')){
     const add=DEFAULT_META.categories.filter(c=>['subs','gold','silver'].includes(c.id)&&!m.categories.some(x=>x.id===c.id));
     const i=m.categories.findIndex(c=>c.id==='other');
@@ -337,7 +338,7 @@ function dayLabel(d){const td=jStr(T.jy,T.jm,T.jd),y=todayJ(-1),yd=jStr(y.jy,y.j
 function txRow(t){
   let icon,title,sub,cls,sign;
   if(t.type==='transfer'){const a=acc(t.account),b=acc(t.toAccount);icon='🔁';title=t.note||'انتقال';sub=`${a?a.name:'؟'} ← ${b?b.name:'؟'}`;cls='';sign=''}
-  else{const c=cat(t.category);icon=c?c.icon:'❔';title=t.note||(c?c.name:'بدون دسته');sub=(c&&t.note?c.name+' · ':'')+(acc(t.account)?.name||'');cls=t.type==='income'?'pos':'neg';sign=t.type==='income'?'+':'−'}
+  else{const c=cat(t.category);icon=c?c.icon:'❔';title=t.note||(c?c.name:'بدون دسته');sub=c&&t.note?c.name:'';cls=t.type==='income'?'pos':'neg';sign=t.type==='income'?'+':'−'}
   return `<button class="tx" data-tx="${t.id}"><span class="ic">${icon}</span><span class="mid"><div class="t">${esc(title)}</div><div class="s">${esc(sub)}</div></span><span class="end"><div class="amt ${cls}">${sign}${grp(t.amount)}</div><div class="d">${shortDate(t.date)}</div></span></button>`;
 }
 function bindTxRows(root){root.querySelectorAll('[data-tx]').forEach(el=>el.onclick=()=>{const t=allTx().find(x=>x.id===el.dataset.tx);if(t)openTx(t)})}
@@ -366,16 +367,12 @@ function renderHome(main){
       <div><span>ماندهٔ ماه</span><b>${money(inc-exp,true)}</b></div>
     </div>
   </div>
-  <div class="card"><h3>حساب‌ها <button class="linkbtn" id="goAcc">مدیریت</button></h3>
-    <div class="accs">${S.meta.accounts.map(a=>`<div class="acc"><div class="n">${a.icon} ${esc(a.name)}</div><div class="v ${bal[a.id]<0?'neg':''}">${money(bal[a.id],true)}</div></div>`).join('')||'<div class="muted">حسابی ندارید</div>'}</div>
-  </div>
   ${budgets.length?`<div class="card"><h3>بودجهٔ این ماه</h3>${budgets.map(c=>{const s=spent[c.id]||0,p=Math.min(100,s/c.budget*100),over=s>c.budget;
     return `<div class="budget"><div class="row"><span>${c.icon} ${esc(c.name)}</span><small class="${over?'neg':''}">${grp(s)} از ${grp(c.budget)}</small></div><div class="bar"><i style="width:${p}%;background:${over?'var(--red)':p>80?'var(--amber)':'var(--brand)'}"></i></div></div>`}).join('')}</div>`:''}
   <div class="card"><h3>تراکنش‌های ${MONTHS[V.m-1]} <small>${mtx.length?fa(mtx.length)+' مورد':''}</small></h3>
     ${mtx.length?Object.entries(dayGroups(mtx)).map(([d,ts])=>`<div class="dayhead" style="padding:10px 0 0"><span>${dayLabel(d)}</span></div>${ts.map(txRow).join('')}`).join(''):`<div class="empty">هنوز تراکنشی در این ماه ثبت نشده.<br>با دکمهٔ <b>+</b> پایین صفحه اولین هزینه یا درآمد را ثبت کنید.</div>`}
   </div>`;
   bindTxRows(main);
-  $('#goAcc').onclick=()=>{V.tab='settings';render()};
 }
 
 function renderList(main){
@@ -394,16 +391,13 @@ function renderList(main){
   <div class="chips scroll">
     <button class="chip ${V.scope==='month'?'on':''}" data-sc="month">📅 فقط ${MONTHS[V.m-1]}</button>
     <button class="chip ${V.scope==='all'?'on':''}" data-sc="all">🗂️ همهٔ ماه‌ها</button>
-    ${[['all','همهٔ انواع'],['expense','هزینه'],['income','درآمد'],['transfer','انتقال']].map(([k,l])=>`<button class="chip ${V.ftype===k?'on':''}" data-ft="${k}">${l}</button>`).join('')}
+    ${[['all','همهٔ انواع'],['expense','هزینه'],['income','درآمد']].concat(allTx().some(t=>t.type==='transfer')?[['transfer','انتقال']]:[]).map(([k,l])=>`<button class="chip ${V.ftype===k?'on':''}" data-ft="${k}">${l}</button>`).join('')}
   </div>
   ${V.ftype!=='transfer'?`<div class="chips scroll">
     <button class="chip ${!V.fcat?'on':''}" data-fc="">همهٔ دسته‌ها</button>
     ${cats.map(c=>`<button class="chip ${V.fcat===c.id?'on':''}" data-fc="${c.id}">${c.icon} ${esc(c.name)}</button>`).join('')}
   </div>`:''}
-  <div class="chips scroll" style="margin-bottom:10px">
-    <button class="chip ${!V.facc?'on':''}" data-fa="">همهٔ حساب‌ها</button>
-    ${S.meta.accounts.map(a=>`<button class="chip ${V.facc===a.id?'on':''}" data-fa="${a.id}">${a.icon} ${esc(a.name)}</button>`).join('')}
-  </div>
+  <div style="height:4px"></div>
   ${filtered&&list.length?`<div class="card" style="padding:12px 14px">
     <div class="sumbar"><span class="muted">${fc?fc.icon+' '+esc(fc.name)+' · ':''}${fa(list.length)} تراکنش ${V.scope==='all'?'در همهٔ ماه‌ها':'در '+MONTHS[V.m-1]}</span>${(fc||V.facc||V.q)?`<button class="linkbtn" id="clr">حذف فیلترها</button>`:''}</div>
     <div class="sumbar" style="margin-top:8px">${exp?`<span>جمع هزینه<b class="neg">${grp(exp)}</b></span>`:''}${inc?`<span>جمع درآمد<b class="pos">${grp(inc)}</b></span>`:''}${inc&&exp?`<span>خالص<b>${money(inc-exp,true)}</b></span>`:''}</div>
@@ -465,11 +459,14 @@ function renderReport(main){
   main.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{V.fcat=b.dataset.go;V.ftype='expense';V.facc='';V.q='';V.scope='month';V.tab='list';render();window.scrollTo(0,0)});
 }
 
+function initialTotal(){return S.meta.accounts.reduce((a,x)=>a+(Number(x.initial)||0),0)}
 function renderSettings(main){
   const bal=balances();
   main.innerHTML=`
-  <div class="card"><h3>حساب‌ها <button class="linkbtn" id="addAcc">+ حساب جدید</button></h3>
-    <div class="list">${S.meta.accounts.map(a=>`<button class="item" data-acc="${a.id}"><span class="ic">${a.icon}</span><span class="mid">${esc(a.name)}<small>موجودی اولیه: ${money(a.initial||0,true)}</small></span><b class="${bal[a.id]<0?'neg':''}">${money(bal[a.id],true)}</b></button>`).join('')}</div>
+  <div class="card"><h3>موجودی اولیه <small>${unit()}</small></h3>
+    <div class="note" style="margin-bottom:8px">پولی که قبل از شروع ثبت تراکنش‌ها داشتید. «موجودی کل» در صفحهٔ اصلی از این عدد شروع می‌شود.</div>
+    <div class="field" style="margin-bottom:8px"><input id="initBal" inputmode="numeric" placeholder="۰" value="${initialTotal()?(initialTotal()<0?'−':'')+grp(initialTotal()):''}"></div>
+    <button class="btn" id="initSave">ذخیرهٔ موجودی اولیه</button>
   </div>
   <div class="card"><h3>دسته‌های هزینه <button class="linkbtn" data-addcat="expense">+ دستهٔ جدید</button></h3>
     <div class="list">${S.meta.categories.filter(c=>c.type==='expense').map(c=>`<button class="item" data-cat="${c.id}"><span class="ic">${c.icon}</span><span class="mid">${esc(c.name)}${c.budget?`<small>بودجهٔ ماهانه: ${grp(c.budget)}</small>`:''}</span><span class="muted">‹</span></button>`).join('')}</div>
@@ -492,8 +489,9 @@ function renderSettings(main){
     <div class="note">${standalone?'✅ اپ روی صفحهٔ اصلی نصب است و بدون اینترنت هم باز می‌شود.':'در <b>Safari</b> دکمهٔ <b>Share</b> (مربع با فلش رو به بالا) را بزنید و <b>Add to Home Screen</b> را انتخاب کنید. از آن به بعد همیشه اپ را از آیکون صفحهٔ اصلی باز کنید؛ بدون اینترنت هم کار می‌کند.'}</div>
   </div>
   <div class="card"><button class="btn danger" id="wipe">پاک کردن همهٔ داده‌ها</button></div>`;
-  main.querySelectorAll('[data-acc]').forEach(b=>b.onclick=()=>openAccount(acc(b.dataset.acc)));
-  $('#addAcc').onclick=()=>openAccount(null);
+  const ib=$('#initBal');ib.oninput=()=>{const raw=toEn(ib.value);const neg=/^\s*[-−]/.test(raw);const n=+raw.replace(/[^\d]/g,'')||0;ib.value=(neg?'−':'')+(n?grp(n):'')};
+  $('#initSave').onclick=()=>{const raw=toEn(ib.value);const v=(+raw.replace(/[^\d]/g,'')||0)*(/^\s*[-−]/.test(raw)?-1:1);
+    const others=S.meta.accounts.slice(1).reduce((a,x)=>a+(Number(x.initial)||0),0);S.meta.accounts[0].initial=v-others;persist('meta');render();toast('ذخیره شد')};
   main.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>openCategory(cat(b.dataset.cat)));
   main.querySelectorAll('[data-addcat]').forEach(b=>b.onclick=()=>openCategory(null,b.dataset.addcat));
   main.querySelectorAll('#cur [data-u]').forEach(b=>b.onclick=()=>{S.meta.settings.currency=b.dataset.u;persist('meta');render()});
@@ -528,7 +526,6 @@ function openTx(t){
   const edit=!!t;
   const dflt=(V.y===T.jy&&V.m===T.jm)?jStr(T.jy,T.jm,T.jd):jStr(V.y,V.m,1);
   const st={type:t?.type||'expense',category:t?.category||'',account:t?.account||S.meta.accounts[0]?.id||'',toAccount:t?.toAccount||S.meta.accounts[1]?.id||''};
-  if(!S.meta.accounts.length){toast('اول از تنظیمات یک حساب بسازید');V.tab='settings';render();return}
   let first=true;
   const draw=()=>{
     const cats=S.meta.categories.filter(c=>c.type===st.type);
@@ -536,13 +533,13 @@ function openTx(t){
     const keepAmt=first?null:$('#amt')?.value, keepNote=first?null:$('#note')?.value, keepDate=(!first&&$('#dY'))?readDate():null;first=false;
     openSheet(`
       <h2>${edit?'ویرایش تراکنش':'ثبت تراکنش'} <button class="linkbtn" id="txClose">بستن</button></h2>
-      <div class="seg">${[['expense','هزینه','exp'],['income','درآمد','inc'],['transfer','انتقال','trf']].map(([k,l,c])=>`<button class="${c} ${st.type===k?'on':''}" data-type="${k}">${l}</button>`).join('')}</div>
+      <div class="seg">${[['expense','هزینه','exp'],['income','درآمد','inc']].concat(t?.type==='transfer'?[['transfer','انتقال','trf']]:[]).map(([k,l,c])=>`<button class="${c} ${st.type===k?'on':''}" data-type="${k}">${l}</button>`).join('')}</div>
       <div class="amountbox">${amountInput('amt',t?.amount)}<div class="hint" id="amtHint"></div></div>
       ${st.type==='transfer'?`
         <div class="row2"><div class="field"><label>از حساب</label><select id="fromA">${S.meta.accounts.map(a=>`<option value="${a.id}" ${a.id===st.account?'selected':''}>${a.icon} ${esc(a.name)}</option>`).join('')}</select></div>
         <div class="field"><label>به حساب</label><select id="toA">${S.meta.accounts.map(a=>`<option value="${a.id}" ${a.id===st.toAccount?'selected':''}>${a.icon} ${esc(a.name)}</option>`).join('')}</select></div></div>`
       :`<div class="field"><label>دسته</label><div class="catgrid">${cats.map(c=>`<button class="cat ${c.id===st.category?'on':''}" data-c="${c.id}"><b>${c.icon}</b>${esc(c.name)}</button>`).join('')}</div></div>
-        <div class="field"><label>حساب</label><select id="fromA">${S.meta.accounts.map(a=>`<option value="${a.id}" ${a.id===st.account?'selected':''}>${a.icon} ${esc(a.name)}</option>`).join('')}</select></div>`}
+        <input type="hidden" id="fromA" value="${esc(st.account)}">`}
       <div class="field"><label>تاریخ</label>${dateFields(keepDate||t?.date||dflt)}</div>
       <div class="field"><label>یادداشت (اختیاری)</label><input id="note" maxlength="120" placeholder="مثلاً خرید نان" value="${esc(t?.note||'')}"></div>
       <button class="btn" id="txSave">${edit?'ذخیرهٔ تغییرات':'ثبت'}</button>
