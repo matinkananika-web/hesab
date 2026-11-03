@@ -355,12 +355,11 @@ function renderHome(main){
   </div>
   ${budgets.length?`<div class="card"><h3>بودجهٔ این ماه</h3>${budgets.map(c=>{const s=spent[c.id]||0,p=Math.min(100,s/c.budget*100),over=s>c.budget;
     return `<div class="budget"><div class="row"><span>${c.icon} ${esc(c.name)}</span><small class="${over?'neg':''}">${grp(s)} از ${grp(c.budget)}</small></div><div class="bar"><i style="width:${p}%;background:${over?'var(--red)':p>80?'var(--amber)':'var(--brand)'}"></i></div></div>`}).join('')}</div>`:''}
-  <div class="card"><h3>آخرین تراکنش‌های ${MONTHS[V.m-1]} ${mtx.length?'<button class="linkbtn" id="goList">همه</button>':''}</h3>
-    ${mtx.length?Object.entries(dayGroups(sortTx(mtx).slice(0,8))).map(([d,ts])=>`<div class="dayhead" style="padding:10px 0 0"><span>${dayLabel(d)}</span></div>${ts.map(txRow).join('')}`).join(''):`<div class="empty">هنوز تراکنشی در این ماه ثبت نشده.<br>با دکمهٔ <b>+</b> پایین صفحه اولین هزینه یا درآمد را ثبت کنید.</div>`}
+  <div class="card"><h3>تراکنش‌های ${MONTHS[V.m-1]} <small>${mtx.length?fa(mtx.length)+' مورد':''}</small></h3>
+    ${mtx.length?Object.entries(dayGroups(mtx)).map(([d,ts])=>`<div class="dayhead" style="padding:10px 0 0"><span>${dayLabel(d)}</span></div>${ts.map(txRow).join('')}`).join(''):`<div class="empty">هنوز تراکنشی در این ماه ثبت نشده.<br>با دکمهٔ <b>+</b> پایین صفحه اولین هزینه یا درآمد را ثبت کنید.</div>`}
   </div>`;
   bindTxRows(main);
   $('#goAcc').onclick=()=>{V.tab='settings';render()};
-  const gl=$('#goList'); if(gl) gl.onclick=()=>{V.tab='list';render()};
 }
 
 function renderList(main){
