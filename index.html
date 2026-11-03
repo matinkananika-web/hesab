@@ -154,6 +154,7 @@ svg text{font-family:Vazirmatn,Tahoma,sans-serif}
 <input type="file" id="fileIn" accept=".json,application/json" class="hidden">
 
 <script>
+if(/\/hesab$/.test(location.pathname)) location.replace(location.pathname+'/'+location.search+location.hash);
 /* ===================== Jalali calendar (jalaali algorithm) ===================== */
 function div(a,b){return ~~(a/b)} function mod(a,b){return a-~~(a/b)*b}
 const BREAKS=[-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178];
@@ -621,9 +622,24 @@ async function wipeAll(){
 
 /* ===================== start ===================== */
 const standalone=window.navigator.standalone===true||matchMedia('(display-mode: standalone)').matches;
-setMode('local');render();
+mode='local';render();
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
+/* offline readiness */
+async function offlineStatus(){
+  const el=$('#sync');
+  if(!('serviceWorker' in navigator)||!window.caches){el.textContent='📱 ذخیره روی همین گوشی';return}
+  try{
+    const ks=await caches.keys();let ok=false;
+    for(const k of ks){const c=await caches.open(k);if(await c.match('./index.html')){ok=true;break}}
+    ok=ok&&!!navigator.serviceWorker.controller;
+    el.textContent=ok?'✅ آماده برای آفلاین':'⏳ در حال آماده‌سازی آفلاین…';
+    if(!ok) setTimeout(offlineStatus,1500);
+  }catch(e){}
+}
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(r=>{r.update().catch(()=>{});offlineStatus()}).catch(()=>{$('#sync').textContent='📱 ذخیره روی همین گوشی'});
+  navigator.serviceWorker.addEventListener('controllerchange',offlineStatus);
+}
 </script>
 </body>
 </html>
